@@ -24,87 +24,74 @@ of new improvements.
 The proposed process contains a number of interrelated components.
 I've numbered them for ease of reference and discussion, not to
 indicate any meaningful ordering. Any aspect of this can be suspended
-at the security team's discretion when handling a vulnerability. Items
-marked with a * need technical work to implement, which needn't delay
-the rest of the process.
+at the security team's discretion when handling a vulnerability.
 
-1. Keep `master` as close to release readiness as possible. This
-   includes testing, documentation, changelog entries, etc. being
-   ready *before* merge.
-2. \*Use code review and automated checks, enforced through branch
-    protection, to ensure point 1 (and generally improve quality and
-    increase knowledge spread).
-3. Follow semver. In light of 1, this includes ensuring any necessary
-   semver bumps happen before a relevant change is merged.
-4. Any community member may request a new release by opening an issue
-   on GitHub.
-5. If any Nix core team member thinks the release is warranted, they
-   can assign themselves the ticket and assume release manager
-   responsibilities for the release, barring another team member's
-   explained disagreement with the timing. Core team members are
-   trusted to use their best judgment in this decision, balancing both
-   the needs of the community at large and the needs of developers
-   working on Nix. In particular, if an especially major change has
-   landed recently or is nearing readiness, the release manager should
-   either branch off before the relevant change or be prepared to do
-   extra stabilization work.
-6. If no core team member is available to do the release work but the
-   team agrees (through its normal decision procedures) that a release
-   is warranted, a volunteer from the community can serve as release
-   manager.
-7. Under normal circumstances, there will be at least one mainline
-   release between each `NixOS` stable release. An explicit decision
-   *not* to release should be made by the core team if a stable
-   release is approaching and no new release has been made.
-8. The release manager will branch off a `#-stabilization` branch
-   (e.g. `2.0.1-stabilization`) in advance of any release.
-9. Changes aimed at getting the release ready (fixing bugs, improving
-   docs, etc.) should target the `#-stabilization` branch and then
+1. Before merging to `master`, require testing, documentation,
+   changelog entries, removal of WIP markers, etc. to keep `master`
+   somewhat stable, maintain bisectability, and shorten the release
+   preparation process.
+2. Follow semver. In light of 1, this includes ensuring any necessary
+   semver bumps happen before a relevant change is merged. Currently,
+   the interface covered by the versioning guarantees is limited to
+   the documented command line interface, the documented expression
+   language semantics, and the nix-daemon protocol.
+3. The Nix core team shall decide when a new release is warranted,
+   through its normal decision procedures. That decision will also
+   include designating a release manager for the release. The specific
+   conditions for a release being warranted are intentionally out of
+   scope of this RFC, but it is expected that the core team will
+   balance both the needs of the community at large and the needs of
+   developers working on Nix. In particular, if an especially major
+   change has landed recently or is nearing readiness, the core team
+   should either mark the release point as being before the relevant
+   change or expect more stabilization work than normal.
+4. The release manager will branch off a `#-maintenance` branch
+   (e.g. `2.1-maintenance`) in advance of any mainline release.
+5. Changes aimed at getting the release ready (fixing bugs, improving
+   docs, etc.) should target the `#-maintenance` branch and then
    be merged forward into `master`. No commit should exist on the
-   `#-stabilization` branch without very soon thereafter being merged
-   into `master` except under rare circumstances. This implies that
-   especially large changes ready around a release should either be
-   included before stabilization branch-off (with extra time to
-   stabilize the new feature) or should, if possible, wait to be
-   merged to `master` until after the release. Which path is taken
-   should be a collaboration between the release manager and the
-   developers of the change in question.
-10. New development unrelated to the new release can go directly into
-    `master` in parallel with a release stabilization.
-11. During stabilization, the release manager should update
-    `nixUnstable` to point to various commits of the `#-stabilization`
-    branch, to easily enable wider testing and integration.
-12. When the release manager determines readiness, the relevant commit
-    is announced to the community. Barring objections or last-minute
-    fixes judged valid by the release manager (or core team), the
-    commit is tagged and the branch receives no further commits.
-    Normal development against `master` continues. Readiness is a
-    judgment call, and should require increased scrutiny/validation
-    for a release with more complex/major changes.
-13. Associated with each `NixOS` stable release is an associated
+   `#-maintenance` branch during the stabilization phase without very
+   soon thereafter being merged into `master` except under rare
+   circumstances. This implies that especially large changes ready
+   around a release should either be included before branch-off (with
+   extra time to stabilize the new feature) or should, if possible,
+   wait to be merged to `master` until after the release. Which path
+   is taken should be a collaboration between the release manager and
+   the developers of the change in question.
+6. New development unrelated to the new release can go directly into
+   `master` in parallel with a release stabilization.
+7. During stabilization, the release manager should update
+   `nixUnstable` to point to various commits of the `#-maintenance`
+   branch, to easily enable wider testing and integration.
+8. When the release manager determines readiness, the relevant commit
+   is announced to the community. Barring objections or last-minute
+   fixes judged valid by the release manager (or core team), the
+   commit is tagged and the branch goes into the maintenance phase.
+   Readiness is a judgment call, and should require increased
+   scrutiny/validation for a release with more complex/major changes.
+9. So long as no new feature work has yet happened on `master`,
+   `master` should be kept equal with the most recent `#-maintenance`
+   branch (through fast-forwards, not cherry-picks). Once new feature
+   work occurs, the semver minor (or major) versions are bumped and
+   normal development continues against `master`. This allows us to
+   maintain the "no patch release without a corresponding mainline
+   release" invariant (see point 13 below) while still allowing patch
+   releases to happen on the appropriate `#-maintenance` branch.
+10. Associated with each `NixOS` stable release is an associated
     `maintained` series of `Nix`, with the same support lifetime as
     the stable release.
-14. If `master` has not yet diverged enough to warrant a minor semver
-    bump relative to the latest release of a `maintained` series, a
-    maintenance release can follow the normal stabilization workflow.
-15. If `master` has diverged too much, a `#-maintenance` branch (e.g.
-    `2.1-maintenance` can be created.
-16. Any important bugfix can be cherry-picked from `master` to a
-    `#-maintenance` branch at any committer's discretion.
-17. In rare cases, if a change truly only makes sense on a
+11. Any important bugfix can be cherry-picked from `master` to a
+    `#-maintenance` branch of a supported `maintained` series at any
+    committer's discretion.
+12. In rare cases, if a change truly only makes sense on a
     `#-maintenance` branch (e.g. when we added support to `1.11` to
     be able to work with a `2.0` database schema) it can be targeted
     directly to the `#-maintenance` branch. This should be avoided if
     possible and subject to especially careful testing and review.
-18. A maintenance release can be tagged off of the `#-maintenance`
+13. A maintenance release can be tagged off of the `#-maintenance`
     branch at any time *after* there is a mainline release that
     contains all of the fixes included in the desired maintenance
-    release, at the discretion of any Nix core team member.
-19. \*Automated testing, ideally applied to all mainline PRs, should
-     ensure that all releases of all supported maintained series are
-     able to successfully install master if a release were cut. This
-     should include a number of definitions of "install", especially
-     `NixOS` upgrades.
+    release, at the discretion of the Nix core team.
 
 # Drawbacks
 [drawbacks]: #drawbacks
@@ -115,7 +102,7 @@ lead to obnoxious busy work or delays for no purpose.
 
 The drawbacks of this specific model are a bit hard to see without
 putting it into practice. One thing that seems apparent is there is a
-non-trivial amount of complexity (19 bullet points!) which could
+non-trivial amount of complexity (13 bullet points!) which could
 perhaps be reduced. It also may prove difficult under this model to
 develop especially large features, as without the right development
 practices (e.g. feature flags on `master`) this can tend to create
@@ -129,22 +116,29 @@ unreleased branches and significant undertested divergence, as well as
 lack of guidance to the Core team for how to handle release requests.
 
 This model is a synthesis of a [discussion] on the nix-core mailing
-list, some other concrete designs can be seen there.
+list, some other concrete designs can be seen there. Additionally, it
+has evolved through the discussion on the [PR].
 
 [discussion]: https://groups.google.com/forum/#!msg/nix-core/9L7jZ9W8VGc/8LaBUc_tBQAJ
+[PR]: https://github.com/NixOS/rfcs/pull/28
 
 # Unresolved questions
 [unresolved]: #unresolved-questions
 
-What should the testing components implied by this proposal look like?
+What specific criteria should the Nix core team use when deciding to
+start a release process?
 
 # Future work
 [future]: #future-work
 
-The main future work required by accepting this model is putting into
-place the requisite automated testing. There is additional small
-administrative overhead implied, including enabling branch protection
-and opening the Nix release process to the core team.
+CI, both to ensure `master` is working and to ensure actively
+maintained series can build and install `master`.
+
+Streamlined responsive code review practices, ideally to the point of
+allowing low-friction branch protection.
+
+Extend semver to more of the interfaces exposed by Nix, such as the
+C++ libraries.
 
 We may in the future decouple maintenance support from the `NixOS`
 release cycle. Any work which involves splitting components out of
@@ -159,3 +153,6 @@ then, etc.
 
 Explicit guidelines/process around developing major features without
 long-lived branches or mainline instability.
+
+Some kind of policy around reversions, particularly when the process
+described here is accidentally violated, would be helpful.
